@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { loadedModels, streamChat, type ChatChunk, type ChatMessage } from './ollama'
+import { TOOLS, describeCall, runTool } from './tools'
 
 export interface UIMessage extends ChatMessage {
   id: string
@@ -45,7 +46,11 @@ export interface ActivityTurn {
 export interface SendOptions {
   model: string
   think: boolean
+  tools: boolean
 }
+
+/** How many times in one turn the model may call tools before we stop looping. */
+const MAX_TOOL_ROUNDS = 5
 
 let lastId = 0
 const uid = () => String(++lastId)
@@ -135,7 +140,12 @@ export function useChat() {
     if (phaseRef.current.kind !== 'tool') go({ kind: 'working', model: opts.model, loading })
     try {
       for await (const chunk of streamChat(
-        { model: opts.model, messages: history.current, think: opts.think },
+        {
+          model: opts.model,
+          messages: history.current,
+          think: opts.think,
+          ...(opts.tools && { tools: TOOLS }),
+        },
         signal,
       )) {
         const m = chunk.message
@@ -188,8 +198,41 @@ export function useChat() {
     try {
       go({ kind: 'working', model: opts.model, loading: false })
       // Ask before sending: once the request is in, /api/ps already lists the model while it loads.
-      const loading = !(await loadedModels().catch((): string[] => [])).includes(opts.model)
-      await runRound(opts, ctrl.signal, loading)
+      const loaded = await loadedModels().catch(() => null)
+      let loading = loaded ? !loaded.includes(opts.model) : false
+
+      // Model asks for tools -> run them -> send results back -> model continues.
+      for (let round = 0; ; round++) {
+        const { assistant } = await runRound(opts, ctrl.signal, loading)
+        loading = false
+        const calls = assistant.tool_calls
+        if (!calls?.length) break
+        if (round >= MAX_TOOL_ROUNDS) {
+          log({ kind: 'error', text: `Stopped after ${MAX_TOOL_ROUNDS} rounds of tool calls` })
+          break
+        }
+        for (const call of calls) {
+          go({ kind: 'tool', name: call.function.name })
+          const t = performance.now()
+          const result = await runTool(call, ctrl.signal)
+          ctrl.signal.throwIfAborted()
+          const toolMsg: UIMessage = {
+            id: uid(),
+            role: 'tool',
+            content: result.output,
+            tool_name: call.function.name,
+            tool_call_id: call.id,
+          }
+          history.current.push(toApi(toolMsg))
+          push({ kind: 'message', message: toolMsg })
+          const preview = result.output.length > 80 ? `${result.output.slice(0, 80)}…` : result.output
+          log({
+            kind: result.ok ? 'tool' : 'error',
+            text: `Called ${describeCall(call)} (${Math.round(performance.now() - t)}ms)`,
+            detail: preview.replace(/\s+/g, ' '),
+          })
+        }
+      }
       log({ kind: 'done', text: `Finished in ${secs(performance.now() - started)}` })
     } catch (err) {
       if (ctrl.signal.aborted) {

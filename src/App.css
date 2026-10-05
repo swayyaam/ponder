@@ -184,6 +184,41 @@ button.ghost:hover:not(:disabled) {
   overflow-y: auto;
 }
 
+/* Tools */
+
+.tool-call {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.tool-call code,
+.tool-result pre {
+  font: 12.5px var(--mono);
+}
+
+.tool-result {
+  margin-top: -10px;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.tool-result summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.tool-result pre {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 /* Orb status */
 
 .brand-orb {

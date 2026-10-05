@@ -15,6 +15,7 @@ export default function App() {
   const [model, setModel] = useState('')
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [think, setThink] = useState(true)
+  const [tools, setTools] = useState(true)
   const [input, setInput] = useState('')
   const threadEnd = useRef<HTMLDivElement>(null)
 
@@ -40,13 +41,14 @@ export default function App() {
   const orb = describe(phase)
   const current = models.find((m) => m.name === model)
   const canThink = current?.capabilities?.includes('thinking') ?? false
+  const canTools = current?.capabilities?.includes('tools') ?? false
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault()
     const text = input.trim()
     if (!text || busy || !model) return
     setInput('')
-    void send(text, { model, think: canThink && think })
+    void send(text, { model, think: canThink && think, tools: canTools && tools })
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -74,6 +76,12 @@ export default function App() {
             <input type="checkbox" checked={canThink && think} disabled={!canThink || busy} onChange={(e) => setThink(e.target.checked)} />
             Thinking
           </label>
+          {canTools && (
+            <label className="toggle" title="get_time and read_file (./sandbox)">
+              <input type="checkbox" checked={tools} disabled={busy} onChange={(e) => setTools(e.target.checked)} />
+              Tools
+            </label>
+          )}
           <button className="ghost" onClick={clear} disabled={busy || !items.length}>
             Clear
           </button>

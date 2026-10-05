@@ -1,0 +1,8 @@
+ponder notes
+
+- The orb follows the Ollama stream: working until the first chunk, reasoning
+  while thinking text arrives, searching while a tool runs, then a calm base
+  orb while the answer streams.
+- Small models think a lot. Turning thinking off makes replies much faster.
+- Ideas for later: show prompt eval as its own phase, let the user pick orb
+  variants, export a conversation as markdown.
