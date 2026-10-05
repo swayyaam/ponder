@@ -5,6 +5,8 @@ A small local chat client for [Ollama](https://ollama.com) models. It uses
 what the model is doing. Every orb change comes from a real event in Ollama's
 `/api/chat` stream. Nothing runs on a timer.
 
+![ponder answering from a sandbox file, with its thinking open and the Activity panel on the right](docs/screenshot.png)
+
 - Streams replies from `/api/chat`, with a **Thinking** toggle (the `think` param)
   and the model's thinking shown in a collapsible block above the answer
 - Model picker filled from `/api/tags`. The Thinking and Tools toggles follow
