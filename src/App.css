@@ -146,27 +146,27 @@ button.ghost:hover:not(:disabled) {
 
 /* Thinking block */
 
-.thinking summary {
+.thinking-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 0;
   color: var(--muted);
   font-size: 13px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
 }
 
-.thinking summary::-webkit-details-marker {
-  display: none;
+.thinking-toggle:hover {
+  color: var(--text);
 }
 
-.thinking summary::after {
+.thinking-toggle::after {
   content: '›';
   transition: transform 0.15s;
 }
 
-.thinking[open] summary::after {
+.thinking-toggle[aria-expanded='true']::after {
   transform: rotate(90deg);
 }
 
@@ -180,6 +180,30 @@ button.ghost:hover:not(:disabled) {
   white-space: pre-wrap;
   max-height: 260px;
   overflow-y: auto;
+}
+
+/* Orb status */
+
+.brand-orb {
+  display: inline-flex;
+  color: var(--text);
+  transition: opacity 0.3s;
+}
+
+.brand-orb.idle {
+  opacity: 0.45;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status svg {
+  color: var(--text);
 }
 
 /* Notices */

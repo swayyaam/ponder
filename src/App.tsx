@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { Orb } from '@yogesharc/thinking-orbs'
 import { Message } from './components/Message'
+import { OrbStatus, describe } from './components/OrbStatus'
 import { listModels, type ModelInfo } from './ollama'
 import { useChat } from './useChat'
 import './App.css'
@@ -7,7 +9,7 @@ import './App.css'
 const DEFAULT_MODEL = 'qwen3.5:2b-mlx'
 
 export default function App() {
-  const { items, busy, send, stop, clear } = useChat()
+  const { items, busy, phase, send, stop, clear } = useChat()
   const [models, setModels] = useState<ModelInfo[]>([])
   const [model, setModel] = useState('')
   const [modelsError, setModelsError] = useState<string | null>(null)
@@ -32,8 +34,9 @@ export default function App() {
 
   useEffect(() => {
     threadEnd.current?.scrollIntoView({ block: 'end' })
-  }, [items])
+  }, [items, phase])
 
+  const orb = describe(phase)
   const current = models.find((m) => m.name === model)
   const canThink = current?.capabilities?.includes('thinking') ?? false
 
@@ -52,7 +55,12 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <div className="brand">ponder</div>
+        <div className="brand">
+          <span className={`brand-orb ${phase.kind === 'idle' ? 'idle' : ''}`}>
+            <Orb key={orb.state} state={orb.state} speed={orb.speed} paused={phase.kind === 'idle'} size={20} />
+          </span>
+          ponder
+        </div>
         <div className="controls">
           <select value={model} onChange={(e) => setModel(e.target.value)} disabled={busy || !models.length}>
             {models.map((m) => (
@@ -101,6 +109,7 @@ export default function App() {
                 )
             }
           })}
+          <OrbStatus phase={phase} />
           <div ref={threadEnd} />
         </div>
 
