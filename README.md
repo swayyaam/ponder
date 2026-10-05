@@ -99,6 +99,15 @@ Put your own files in `./sandbox` to let the model read them.
 - History is kept in memory for the session (Clear resets it). Thinking text
   isn't sent back to the model.
 
+## Design
+
+The look follows [`DESIGN.md`](DESIGN.md), dark variant. Every color, type
+size, spacing step and radius is a CSS variable in
+[`src/styles/theme.css`](src/styles/theme.css), and the components only read
+those variables. The design's display face is proprietary, so ponder uses
+Inter, the substitute DESIGN.md names, and Geist Mono for labels. Both are
+self-hosted, weight 400 only. The orbs are the only animated element.
+
 ## License
 
 [MIT](LICENSE) © Swayam Mishra

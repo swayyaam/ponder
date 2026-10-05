@@ -82,7 +82,7 @@ export default function App() {
               Tools
             </label>
           )}
-          <button className="ghost" onClick={clear} disabled={busy || !items.length}>
+          <button onClick={clear} disabled={busy || !items.length}>
             Clear
           </button>
         </div>
@@ -91,15 +91,23 @@ export default function App() {
       <main className="chat">
         {modelsError && (
           <div className="banner error">
-            <span>{modelsError}</span>
-            <button className="ghost" onClick={() => void loadModels()}>
+            <div>
+              <div className="eyebrow">Error</div>
+              <span>{modelsError}</span>
+            </div>
+            <button onClick={() => void loadModels()}>
               Retry
             </button>
           </div>
         )}
 
         <div className="thread">
-          {!items.length && !modelsError && <div className="empty">Ask {model || 'the model'} anything.</div>}
+          {!items.length && !modelsError && (
+            <div className="empty">
+              <div className="eyebrow">New chat</div>
+              <p>Ask {model || 'the model'} anything.</p>
+            </div>
+          )}
           {items.map((it) => {
             switch (it.kind) {
               case 'message':
@@ -107,6 +115,7 @@ export default function App() {
               case 'error':
                 return (
                   <div key={it.id} className="notice error">
+                    <div className="eyebrow">Error</div>
                     {it.text}
                   </div>
                 )
@@ -135,7 +144,7 @@ export default function App() {
               Stop
             </button>
           ) : (
-            <button type="submit" disabled={!input.trim() || !model}>
+            <button type="submit" className="primary" disabled={!input.trim() || !model}>
               Send
             </button>
           )}
