@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import { Orb } from '@yogesharc/thinking-orbs'
 import { ActivityPanel } from './components/ActivityPanel'
 import { Message } from './components/Message'
-import { OrbStatus, describe } from './components/OrbStatus'
+import { OrbStatus } from './components/OrbStatus'
+import { describe } from './orbs'
 import { listModels, type ModelInfo } from './ollama'
 import { useChat } from './useChat'
 import './App.css'
@@ -19,20 +20,19 @@ export default function App() {
   const [input, setInput] = useState('')
   const threadEnd = useRef<HTMLDivElement>(null)
 
-  const loadModels = useCallback(async () => {
-    try {
-      const list = await listModels()
-      setModels(list)
-      setModelsError(list.length ? null : 'No models installed. Pull one with `ollama pull qwen3.5:2b-mlx`.')
-      setModel((cur) => cur || (list.find((m) => m.name === DEFAULT_MODEL) ?? list[0])?.name || '')
-    } catch (err) {
-      setModelsError(err instanceof Error ? err.message : String(err))
-    }
+  const showModels = useCallback((list: ModelInfo[]) => {
+    setModels(list)
+    setModelsError(list.length ? null : 'No models installed. Pull one with `ollama pull qwen3.5:2b-mlx`.')
+    setModel((cur) => cur || (list.find((m) => m.name === DEFAULT_MODEL) ?? list[0])?.name || '')
   }, [])
+  const showModelsError = useCallback((err: unknown) => {
+    setModelsError(err instanceof Error ? err.message : String(err))
+  }, [])
+  const loadModels = () => listModels().then(showModels, showModelsError)
 
   useEffect(() => {
-    void loadModels()
-  }, [loadModels])
+    listModels().then(showModels, showModelsError)
+  }, [showModels, showModelsError])
 
   useEffect(() => {
     threadEnd.current?.scrollIntoView({ block: 'end' })

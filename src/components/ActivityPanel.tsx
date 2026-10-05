@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Orb, type OrbState } from '@yogesharc/thinking-orbs'
 import type { ActivityKind, ActivityTurn, Phase } from '../useChat'
-import { describe } from './OrbStatus'
+import { describe } from '../orbs'
 
 /** Each line gets a still orb of the state it came from. */
 const ICON: Record<ActivityKind, OrbState> = {

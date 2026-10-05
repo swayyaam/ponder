@@ -64,7 +64,9 @@ export function sandbox(dir: string): Plugin {
     }
     if (req.method !== 'GET') return send(405, { error: 'Only GET is supported' })
 
-    const rel = new URL(req.url ?? '/', 'http://localhost').searchParams.get('path') || '.'
+    // Small models often write "/notes.txt" or "*" for the sandbox root; both stay inside it.
+    const asked = new URL(req.url ?? '/', 'http://localhost').searchParams.get('path') ?? ''
+    const rel = asked.replace(/^\/+/, '').replace(/^\*$/, '') || '.'
     read(root, rel).then(
       (content) => send(200, { path: rel, content }),
       (err: Error) => send(err instanceof SandboxError ? err.status : 400, { error: err.message }),
