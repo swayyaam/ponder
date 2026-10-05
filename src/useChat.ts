@@ -26,6 +26,22 @@ export type Item =
   | { kind: 'error'; id: string; text: string }
   | { kind: 'stopped'; id: string }
 
+export type ActivityKind = 'load' | 'prompt' | 'think' | 'tool' | 'generate' | 'done' | 'stop' | 'error'
+
+export interface ActivityEvent {
+  id: string
+  kind: ActivityKind
+  text: string
+  detail?: string
+}
+
+/** Everything that happened while answering one user message. */
+export interface ActivityTurn {
+  id: string
+  prompt: string
+  events: ActivityEvent[]
+}
+
 export interface SendOptions {
   model: string
   think: boolean
@@ -38,6 +54,37 @@ const uid = () => String(++lastId)
 const at = (chunk: ChatChunk) => {
   const t = Date.parse(chunk.created_at)
   return Number.isNaN(t) ? Date.now() : t
+}
+
+const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
+const NS = 1e6
+
+/** Activity lines for one finished (or cut short) request, in the order things happened. */
+function roundEvents(model: string, loading: boolean, assistant: UIMessage, final?: ChatChunk) {
+  const out: Omit<ActivityEvent, 'id'>[] = []
+  if (final?.load_duration !== undefined && (loading || final.load_duration > 500 * NS)) {
+    out.push({ kind: 'load', text: `Loaded ${model} (${secs(final.load_duration / NS)})` })
+  }
+  if (final?.prompt_eval_count !== undefined && final.prompt_eval_duration !== undefined) {
+    const cached = final.prompt_eval_cached_count
+    out.push({
+      kind: 'prompt',
+      text: `Read ${final.prompt_eval_count} prompt tokens in ${secs(final.prompt_eval_duration / NS)}`,
+      detail: cached ? `${cached} from cache` : undefined,
+    })
+  }
+  if (assistant.thoughtMs !== undefined) {
+    out.push({ kind: 'think', text: `Thought for ${secs(assistant.thoughtMs)}` })
+  }
+  if (final?.eval_count !== undefined && final.eval_duration) {
+    const rate = final.eval_count / (final.eval_duration / 1e9)
+    out.push({
+      kind: 'generate',
+      text: `Generated ${final.eval_count} tokens, ${Math.round(rate)} tok/s`,
+      detail: assistant.thinking ? 'includes thinking tokens' : undefined,
+    })
+  }
+  return out
 }
 
 /** What goes back to Ollama as history: no UI fields, no thinking text. */
@@ -53,6 +100,7 @@ export function useChat() {
   const [items, setItems] = useState<Item[]>([])
   const [busy, setBusy] = useState(false)
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' })
+  const [activity, setActivity] = useState<ActivityTurn[]>([])
   const phaseRef = useRef<Phase>({ kind: 'idle' })
   const history = useRef<ChatMessage[]>([])
   const abort = useRef<AbortController | null>(null)
@@ -62,6 +110,14 @@ export function useChat() {
     phaseRef.current = next
     setPhase(next)
   }
+
+  /** Append to the current (last) turn's activity. */
+  const log = (...events: Omit<ActivityEvent, 'id'>[]) =>
+    setActivity((prev) => {
+      const last = prev[prev.length - 1]
+      if (!last) return prev
+      return [...prev.slice(0, -1), { ...last, events: [...last.events, ...events.map((e) => ({ ...e, id: uid() }))] }]
+    })
 
   const push = (item: Item) => setItems((prev) => [...prev, item])
   const patch = (id: string, fn: (m: UIMessage) => UIMessage) =>
@@ -111,6 +167,7 @@ export function useChat() {
     } finally {
       assistant.live = false
       if (shown) patch(assistant.id, () => ({ ...assistant }))
+      log(...roundEvents(opts.model, loading, assistant, final))
       // Keep whatever arrived, even if stopped midway, so the next turn has context.
       if (assistant.content || assistant.tool_calls) history.current.push(toApi(assistant))
     }
@@ -125,17 +182,23 @@ export function useChat() {
     const user: UIMessage = { id: uid(), role: 'user', content: text }
     history.current.push(toApi(user))
     push({ kind: 'message', message: user })
+    setActivity((prev) => [...prev, { id: uid(), prompt: text, events: [] }])
+    const started = performance.now()
 
     try {
       go({ kind: 'working', model: opts.model, loading: false })
       // Ask before sending: once the request is in, /api/ps already lists the model while it loads.
       const loading = !(await loadedModels().catch((): string[] => [])).includes(opts.model)
       await runRound(opts, ctrl.signal, loading)
+      log({ kind: 'done', text: `Finished in ${secs(performance.now() - started)}` })
     } catch (err) {
       if (ctrl.signal.aborted) {
         push({ kind: 'stopped', id: uid() })
+        log({ kind: 'stop', text: `Stopped by user after ${secs(performance.now() - started)}` })
       } else {
-        push({ kind: 'error', id: uid(), text: err instanceof Error ? err.message : String(err) })
+        const text = err instanceof Error ? err.message : String(err)
+        push({ kind: 'error', id: uid(), text })
+        log({ kind: 'error', text: 'Request failed', detail: text })
       }
     } finally {
       abort.current = null
@@ -150,7 +213,8 @@ export function useChat() {
     abort.current?.abort()
     history.current = []
     setItems([])
+    setActivity([])
   }, [])
 
-  return { items, busy, phase, send, stop, clear }
+  return { items, busy, phase, activity, send, stop, clear }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Orb } from '@yogesharc/thinking-orbs'
+import { ActivityPanel } from './components/ActivityPanel'
 import { Message } from './components/Message'
 import { OrbStatus, describe } from './components/OrbStatus'
 import { listModels, type ModelInfo } from './ollama'
@@ -9,7 +10,7 @@ import './App.css'
 const DEFAULT_MODEL = 'qwen3.5:2b-mlx'
 
 export default function App() {
-  const { items, busy, phase, send, stop, clear } = useChat()
+  const { items, busy, phase, activity, send, stop, clear } = useChat()
   const [models, setModels] = useState<ModelInfo[]>([])
   const [model, setModel] = useState('')
   const [modelsError, setModelsError] = useState<string | null>(null)
@@ -132,6 +133,8 @@ export default function App() {
           )}
         </form>
       </main>
+
+      <ActivityPanel turns={activity} phase={phase} />
     </div>
   )
 }

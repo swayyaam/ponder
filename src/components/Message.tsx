@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Markdown from 'react-markdown'
 import type { UIMessage } from '../useChat'
 
-export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`
+const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`
 
 /** Collapsible, muted thinking text: open while it streams, folded once the answer starts. */
 function Thinking({ text, active, thoughtMs }: { text: string; active: boolean; thoughtMs?: number }) {
