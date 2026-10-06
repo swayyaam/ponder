@@ -76,18 +76,8 @@ function Answer({ text, live }: { text: string; live: boolean }) {
   const shown = useSmoothText(text, live)
   const partial = live || shown.length < text.length
 
-  // The thread scrolls to the end when a chunk arrives; the reveal runs a few frames
-  // behind, so keep following it while the reader is still near the bottom.
-  const ref = useRef<HTMLDivElement>(null)
-  useLayoutEffect(() => {
-    const thread = ref.current?.closest('.thread')
-    if (partial && thread && thread.scrollHeight - thread.scrollTop - thread.clientHeight < 160) {
-      thread.scrollTop = thread.scrollHeight
-    }
-  }, [shown, partial])
-
   return (
-    <div ref={ref} className="markdown">
+    <div className="markdown">
       <Markdown>{partial ? closePartial(shown) : shown}</Markdown>
     </div>
   )

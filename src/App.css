@@ -225,6 +225,13 @@ select option {
   padding: var(--space-xl) max(var(--space-xl), calc((100% - var(--layout-thread-max)) / 2));
   display: flex;
   flex-direction: column;
+}
+
+/* One box around the thread's items, so a ResizeObserver can see it grow */
+.thread-content {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-xl);
 }
 

@@ -18,7 +18,11 @@ export default function App() {
   const [think, setThink] = useState(true)
   const [tools, setTools] = useState(true)
   const [input, setInput] = useState('')
-  const threadEnd = useRef<HTMLDivElement>(null)
+  const thread = useRef<HTMLDivElement>(null)
+  const threadContent = useRef<HTMLDivElement>(null)
+  /** Follow new text only while the reader is at the bottom. */
+  const stick = useRef(true)
+  const lastTop = useRef(0)
 
   const showModels = useCallback((list: ModelInfo[]) => {
     setModels(list)
@@ -37,9 +41,29 @@ export default function App() {
     listModels().then(showModels, showModelsError)
   }, [showModels, showModelsError])
 
+  // Scrolling up stops the thread following the stream; scrolling back to the bottom resumes it.
+  // A drop in scrollTop that leaves us at the bottom is the browser clamping after content
+  // shrank (a thinking block folding), not the reader, so it doesn't count.
+  const onThreadScroll = () => {
+    const el = thread.current
+    if (!el) return
+    const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    if (fromBottom < 8) stick.current = true
+    else if (el.scrollTop < lastTop.current - 1) stick.current = false
+    lastTop.current = el.scrollTop
+  }
+
+  // Follow every change in the thread's height (new messages, streamed text, the smooth reveal).
   useEffect(() => {
-    threadEnd.current?.scrollIntoView({ block: 'end' })
-  }, [items, phase])
+    const el = thread.current
+    const content = threadContent.current
+    if (!el || !content) return
+    const observer = new ResizeObserver(() => {
+      if (stick.current) el.scrollTop = el.scrollHeight
+    })
+    observer.observe(content)
+    return () => observer.disconnect()
+  }, [])
 
   const orb = describe(phase)
   const lastUser = items.findLastIndex((it) => it.kind === 'message' && it.message.role === 'user')
@@ -51,6 +75,9 @@ export default function App() {
     e?.preventDefault()
     const text = input.trim()
     if (!text || busy || !model) return
+    // Sending always jumps to the end and follows the new answer.
+    stick.current = true
+    if (thread.current) thread.current.scrollTop = thread.current.scrollHeight
     setInput('')
     void send(text, { model, think: canThink && think, tools: canTools && tools })
   }
@@ -105,41 +132,42 @@ export default function App() {
           </div>
         )}
 
-        <div className="thread">
-          {!items.length && !modelsError && (
-            <div className="empty">
-              <div className="eyebrow">New chat</div>
-              <p>Ask {model || 'the model'} anything.</p>
-            </div>
-          )}
-          {items.map((it, i) => {
-            switch (it.kind) {
-              case 'message':
-                return (
-                  <Message
-                    key={it.message.id}
-                    message={it.message}
-                    current={i > lastUser}
-                    onSkipThinking={skipThinking}
-                  />
-                )
-              case 'error':
-                return (
-                  <div key={it.id} className="notice error">
-                    <div className="eyebrow">Error</div>
-                    {it.text}
-                  </div>
-                )
-              case 'stopped':
-                return (
-                  <div key={it.id} className="notice">
-                    Stopped.
-                  </div>
-                )
-            }
-          })}
-          <OrbStatus phase={phase} />
-          <div ref={threadEnd} />
+        <div className="thread" ref={thread} onScroll={onThreadScroll}>
+          <div className="thread-content" ref={threadContent}>
+            {!items.length && !modelsError && (
+              <div className="empty">
+                <div className="eyebrow">New chat</div>
+                <p>Ask {model || 'the model'} anything.</p>
+              </div>
+            )}
+            {items.map((it, i) => {
+              switch (it.kind) {
+                case 'message':
+                  return (
+                    <Message
+                      key={it.message.id}
+                      message={it.message}
+                      current={i > lastUser}
+                      onSkipThinking={skipThinking}
+                    />
+                  )
+                case 'error':
+                  return (
+                    <div key={it.id} className="notice error">
+                      <div className="eyebrow">Error</div>
+                      {it.text}
+                    </div>
+                  )
+                case 'stopped':
+                  return (
+                    <div key={it.id} className="notice">
+                      Stopped.
+                    </div>
+                  )
+              }
+            })}
+            <OrbStatus phase={phase} />
+          </div>
         </div>
 
         <form className="composer" onSubmit={submit}>

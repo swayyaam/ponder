@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The thread no longer pulls you back to the bottom while you scroll up to
+  read during a reply. It follows new text only while you're at the bottom,
+  resumes when you scroll back down, and jumps to the end when you send.
+
 ## 0.1.0 (2026-10-06)
 
 First tagged release.
