@@ -4,6 +4,7 @@ import type { GuardReason } from '../loopGuard'
 import { closePartial } from '../markdown'
 import { describeCall } from '../tools'
 import type { UIMessage } from '../useChat'
+import { useSmoothText } from '../useSmoothText'
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`
 
@@ -28,13 +29,16 @@ function Thinking({ text, active, thoughtMs, tokens, stopped, onSkip }: Thinking
     setOpen(active || !!stopped)
   }
 
+  const shown = useSmoothText(text, active)
+  const partial = active || shown.length < text.length
+
   // While it streams, keep the newest line in view unless the reader scrolled up.
   const box = useRef<HTMLDivElement>(null)
   const follow = useRef(true)
   useLayoutEffect(() => {
     const el = box.current
-    if (el && active && follow.current) el.scrollTop = el.scrollHeight
-  }, [text, active, open])
+    if (el && partial && follow.current) el.scrollTop = el.scrollHeight
+  }, [shown, partial, open])
   const onScroll = () => {
     const el = box.current
     if (el) follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
@@ -57,9 +61,31 @@ function Thinking({ text, active, thoughtMs, tokens, stopped, onSkip }: Thinking
       </div>
       {open && (
         <div ref={box} className="thinking-text markdown" onScroll={onScroll}>
-          <Markdown>{active ? closePartial(text) : text}</Markdown>
+          <Markdown>{partial ? closePartial(shown) : shown}</Markdown>
         </div>
       )}
+    </div>
+  )
+}
+
+/** The answer, revealed smoothly while it streams. */
+function Answer({ text, live }: { text: string; live: boolean }) {
+  const shown = useSmoothText(text, live)
+  const partial = live || shown.length < text.length
+
+  // The thread scrolls to the end when a chunk arrives; the reveal runs a few frames
+  // behind, so keep following it while the reader is still near the bottom.
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const thread = ref.current?.closest('.thread')
+    if (partial && thread && thread.scrollHeight - thread.scrollTop - thread.clientHeight < 160) {
+      thread.scrollTop = thread.scrollHeight
+    }
+  }, [shown, partial])
+
+  return (
+    <div ref={ref} className="markdown">
+      <Markdown>{partial ? closePartial(shown) : shown}</Markdown>
     </div>
   )
 }
@@ -96,11 +122,7 @@ export function Message({ message, onSkipThinking }: { message: UIMessage; onSki
           Called <code>{describeCall(call)}</code>
         </div>
       ))}
-      {message.content && (
-        <div className="markdown">
-          <Markdown>{message.live ? closePartial(message.content) : message.content}</Markdown>
-        </div>
-      )}
+      {message.content && <Answer text={message.content} live={!!message.live} />}
     </div>
   )
 }
