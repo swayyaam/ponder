@@ -844,6 +844,7 @@ select option {
 
   button.icon-only {
     min-width: var(--touch-target);
+    min-height: var(--touch-target);
   }
 }
 
