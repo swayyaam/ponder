@@ -1,12 +1,18 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import { ChevronDown, ChevronRight, Clock, FileText, Wrench, type LucideIcon } from 'lucide-react'
 import Markdown from 'react-markdown'
 import type { GuardReason } from '../loopGuard'
 import { closePartial } from '../markdown'
 import { describeCall } from '../tools'
 import type { UIMessage } from '../useChat'
 import { useSmoothText } from '../useSmoothText'
+import { Icon } from './Icon'
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`
+
+/** One icon per tool, on its call line and its result pill. */
+const TOOL_ICON: Record<string, LucideIcon> = { read_file: FileText, get_time: Clock }
+const toolIcon = (name?: string) => (name && TOOL_ICON[name]) || Wrench
 
 interface ThinkingProps {
   text: string
@@ -54,6 +60,7 @@ function Thinking({ text, active, thoughtMs, tokens, stopped, current, onSkip }:
       <div className="thinking-head">
         <button type="button" className="thinking-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           {label}
+          <Icon icon={open ? ChevronDown : ChevronRight} size="sm" />
         </button>
         {meta && <span className={`thinking-meta ${stopped && stopped !== 'skipped' ? 'stopped' : ''}`}>{meta}</span>}
         {active && onSkip && (
@@ -98,7 +105,12 @@ export function Message({ message, current = false, onSkipThinking }: MessagePro
   if (message.role === 'tool') {
     return (
       <details className="msg tool-result">
-        <summary>{message.tool_name} returned</summary>
+        <summary>
+          <Icon icon={toolIcon(message.tool_name)} size="sm" />
+          {message.tool_name} returned
+          <Icon icon={ChevronRight} size="sm" className="when-closed" />
+          <Icon icon={ChevronDown} size="sm" className="when-open" />
+        </summary>
         <pre>{message.content}</pre>
       </details>
     )
@@ -120,7 +132,10 @@ export function Message({ message, current = false, onSkipThinking }: MessagePro
       )}
       {message.tool_calls?.map((call, i) => (
         <div key={call.id ?? i} className="tool-call">
-          Called <code>{describeCall(call)}</code>
+          <Icon icon={toolIcon(call.function.name)} size="sm" />
+          <span>
+            Called <code>{describeCall(call)}</code>
+          </span>
         </div>
       ))}
       {message.content && <Answer text={message.content} live={!!message.live} />}

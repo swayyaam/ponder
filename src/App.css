@@ -438,13 +438,6 @@ select option {
   color: var(--color-body);
 }
 
-.thinking-toggle::after {
-  content: '›';
-}
-
-.thinking-toggle[aria-expanded='true']::after {
-  transform: rotate(90deg);
-}
 
 .thinking-text {
   align-self: stretch;
@@ -504,6 +497,9 @@ select option {
 /* Tool calls and results */
 
 .tool-call {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   color: var(--color-mute);
 }
 
@@ -520,6 +516,8 @@ select option {
 
 .tool-result summary {
   display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
   list-style: none;
   color: var(--color-mute);
   border: var(--border-outline);
@@ -529,6 +527,11 @@ select option {
 }
 
 .tool-result summary::-webkit-details-marker {
+  display: none;
+}
+
+.tool-result[open] .when-closed,
+.tool-result:not([open]) .when-open {
   display: none;
 }
 
