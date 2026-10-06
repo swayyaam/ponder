@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Markdown from 'react-markdown'
+import { closePartial } from '../markdown'
 import { describeCall } from '../tools'
 import type { UIMessage } from '../useChat'
 
@@ -20,7 +21,11 @@ function Thinking({ text, active, thoughtMs }: { text: string; active: boolean; 
       <button type="button" className="thinking-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         {label}
       </button>
-      {open && <div className="thinking-text">{text}</div>}
+      {open && (
+        <div className="thinking-text markdown">
+          <Markdown>{active ? closePartial(text) : text}</Markdown>
+        </div>
+      )}
     </div>
   )
 }

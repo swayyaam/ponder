@@ -378,9 +378,47 @@ select option {
   font-style: italic;
   font-size: var(--text-body-sm);
   line-height: var(--leading-body-sm);
-  white-space: pre-wrap;
   max-height: var(--layout-scroll-max);
   overflow-y: auto;
+}
+
+/* Keep the model's own line breaks inside paragraphs */
+.thinking-text p {
+  white-space: pre-wrap;
+}
+
+.thinking-text p,
+.thinking-text ul,
+.thinking-text ol,
+.thinking-text pre,
+.thinking-text blockquote {
+  margin: var(--space-sm) 0;
+}
+
+/* Thinking stays muted: emphasis is one step brighter, headings stay body size */
+.thinking-text strong,
+.thinking-text b,
+.thinking-text h1,
+.thinking-text h2,
+.thinking-text h3,
+.thinking-text h4 {
+  color: var(--color-body);
+}
+
+.thinking-text h1,
+.thinking-text h2,
+.thinking-text h3,
+.thinking-text h4 {
+  margin: var(--space-md) 0 var(--space-xs);
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: normal;
+}
+
+/* Already italic, so emphasis turns upright */
+.thinking-text em,
+.thinking-text i {
+  font-style: normal;
 }
 
 /* Tool calls and results */
