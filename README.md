@@ -1,52 +1,53 @@
 # ponder
 
-A small local chat client for [Ollama](https://ollama.com) models. It uses
-[Thinking Orbs](https://thinkingorbs.com) (`@yogesharc/thinking-orbs`) to show
-what the model is doing. Every orb change comes from a real event in Ollama's
-`/api/chat` stream. Nothing runs on a timer.
+A small local chat client for [Ollama](https://ollama.com) that shows what the model is doing, live, with [Thinking Orbs](https://thinkingorbs.com).
 
-![ponder answering from a sandbox file, with its thinking open and the Activity panel on the right](docs/screenshot.png)
-
-- Streams replies from `/api/chat`, with a **Thinking** toggle (the `think` param)
-  and the model's thinking shown in a collapsible block above the answer
-- Model picker filled from `/api/tags`. The Thinking and Tools toggles follow
-  each model's reported `capabilities`
-- Stop button (aborts the request)
-- **Activity** panel that logs each turn: model load time, prompt tokens,
-  how long it thought, tool calls, and tokens/sec, all taken from the stream's
-  own fields
-- Two tools with a full call loop (the model asks, ponder runs the tool, the
-  result goes back, the model continues):
-  - `get_time`: the local time, computed in the browser
-  - `read_file`: reads a file from `./sandbox`, served by a small Vite
-    dev-server endpoint that refuses any path outside that folder
+![ponder mid-Reasoning: the thinking block renders a list as it streams, with a live token count and a Skip thinking button, and the Activity panel on the right](docs/screenshot.png)
 
 ## Requirements
 
-- Ollama running locally at `http://localhost:11434`
-  (`ollama serve`, or the Ollama app)
-- A model, e.g. `ollama pull qwen3.5:2b-mlx` (the default)
-- Node 20+
+- Node 20.19+ or 22.12+
+- Ollama running locally at `http://localhost:11434` (`ollama serve`, or the Ollama app)
+- At least one model pulled. The default is `qwen3.5:2b-mlx`:
+  `ollama pull qwen3.5:2b-mlx`. If it isn't installed, ponder picks the first
+  model you have.
 
-## Run
+## Install and run
 
 ```bash
+git clone https://github.com/swayyaam/ponder.git && cd ponder
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173. To point at a different Ollama, set `OLLAMA_URL`:
-
-```bash
-OLLAMA_URL=http://192.168.1.20:11434 npm run dev
-```
+Open http://localhost:5173. To use an Ollama on another machine, start it with
+`OLLAMA_URL=http://192.168.1.20:11434 npm run dev`.
 
 The browser never talks to Ollama directly. Vite proxies `/ollama/*` to it, so
-there are no CORS issues. `npm run build && npm run preview` works too, since
-the proxy and the sandbox endpoint run in preview mode as well. ponder needs one
-of the two: a static `dist/` on its own has no proxy and no `read_file`.
+there are no CORS issues.
 
-## Orb states
+## Features
+
+- Streams replies from `/api/chat`. Answers and the model's thinking render as
+  markdown and are revealed smoothly, a few characters per frame
+- Model picker filled from `/api/tags`. The Thinking and Tools toggles follow
+  each model's reported `capabilities`
+- Collapsible thinking block with a live token count. It opens while the model
+  thinks, stays open while the answer streams below it, and folds when you send
+  the next message
+- Stop button, which aborts the request, and Clear, which resets the chat
+- **Activity** panel that logs each turn: model load time, prompt tokens, how
+  long it thought, tool calls, tokens/sec, and loop guard retries, all taken
+  from the stream's own fields
+- Two tools with a full call loop (the model asks, ponder runs the tool, the
+  result goes back, the model continues):
+  - `get_time`: the local time, computed in the browser
+  - `read_file`: reads a file from `./sandbox`
+- A loop guard that stops runaway thinking and retries without it (see below)
+
+### Orb states
+
+Every orb change comes from a real event in the stream. Nothing runs on a timer.
 
 | What the stream is doing | How ponder detects it | Orb |
 | --- | --- | --- |
@@ -54,61 +55,70 @@ of the two: a static `dist/` on its own has no proxy and no `read_file`.
 | Thinking | Chunk has a non-empty `message.thinking` | `reasoning` |
 | Tool call in progress | Chunk has `message.tool_calls`. Lasts while the tool runs and until the model's first chunk after it gets the result | `searching` |
 | Writing the answer | Chunk has a non-empty `message.content` | `base`, at 0.6× speed (the calmest orb) |
-| Done, stopped, or failed | Stream ended, request aborted, or an error came back | `base`, paused and dimmed. Errors are shown in the thread and the Activity panel |
+| Done, stopped, or failed | Stream ended, request aborted, or an error came back | `base`, paused and dimmed |
 
-The orb in the header always matches the current state. While a request runs,
-a status line with the orb and its label sits under the thread.
+The orb in the header always shows the current state. While a request runs, a
+larger orb and its label sit under the thread.
 
-### What the Activity panel reports
+### Thinking and Tools toggles
 
-All numbers come from the final `done: true` chunk, where Ollama reports
-durations in nanoseconds:
+- **Thinking** sends `think: true`, so models that can reason do it before
+  answering. It's disabled for models without the `thinking` capability.
+  Thinking text is shown but never sent back to the model as history.
+- **Tools** sends `get_time` and `read_file` with each request. It only appears
+  for models with the `tools` capability.
 
-- **Loaded** `<model>` (`load_duration`): shown when the model was cold, or
-  when loading took more than 0.5s
-- **Read N prompt tokens** (`prompt_eval_count`, `prompt_eval_duration`,
-  `prompt_eval_cached_count`)
-- **Thought for Xs**: the `created_at` gap between the first thinking chunk
-  and the first chunk after thinking ends
-- **Called** `tool(args)`: how long the tool took to run in ponder, plus a
-  preview of its result
-- **Generated N tokens, R tok/s** (`eval_count / eval_duration`). This count
-  includes thinking tokens
+ponder doesn't send sampling options (temperature, top_p and so on), so every
+model runs with the settings its own Modelfile recommends.
 
-## Tools
+### Loop guard
 
-Tools are sent only when the selected model lists `tools` in its capabilities.
-`qwen3.5:2b-mlx` does, and handles both tools fine. With thinking off, small
-models sometimes guess file names. A failed tool call goes back to the model as
-an error message, so it can recover.
+Small reasoning models sometimes think forever. ponder watches the thinking as
+it streams and stops it when either of these happens:
 
-`read_file` calls `GET /api/sandbox?path=...`, defined in
-[`server/sandbox.ts`](server/sandbox.ts). The endpoint:
+- **Looping**: the same block of text (a 40+ character run) repeats 3 times in
+  a row. List items that share a phrase but differ elsewhere don't count.
+- **Over budget**: thinking passes 3000 tokens or 90 seconds.
 
-- reads only from `./sandbox`. A leading `/` counts as the sandbox root, and
-  `.`, `/` or `*` list the folder
-- rejects `..` traversal, absolute paths that escape, and symlinks that point
-  outside the folder (403)
-- caps reads at 64 KB
+You can also press **Skip thinking** while the model is reasoning.
 
-Put your own files in `./sandbox` to let the model read them.
+When it trips, ponder aborts the request, keeps the partial thinking open and
+marks it "stopped: looping", "stopped: over budget" or "stopped: skipped", then
+retries the same turn once with thinking off so you still get an answer. The
+Activity panel logs the retry, for example "Thinking looped, retried without
+thinking".
 
-## Notes
+Every request also sends `num_predict: 8192`, so no single response can run
+unbounded. The limits are constants in [`src/loopGuard.ts`](src/loopGuard.ts).
 
-- If Ollama isn't running you'll see: "Can't reach Ollama at
-  http://localhost:11434. Start Ollama with `ollama serve`." Click Retry once
-  it's up.
-- History is kept in memory for the session (Clear resets it). Thinking text
-  isn't sent back to the model.
+## Limits
 
-## Design
+- **Dev server only.** ponder runs through Vite: `npm run dev`, or
+  `npm run preview` after `npm run build`. There's no standalone production
+  server. A static `dist/` on its own has no Ollama proxy and no `read_file`.
+- **`read_file` is restricted to `./sandbox`.** The endpoint
+  ([`server/sandbox.ts`](server/sandbox.ts)) rejects `..`, absolute paths that
+  escape and symlinks that point outside the folder, and caps reads at 64 KB.
+  Put your own files in `./sandbox` to let the model read them.
+- **Tested on macOS with MLX models** (`qwen3.5:2b-mlx`, `qwen3.5:0.8b-mlx`,
+  `gemma4:e2b-mlx`) on Apple Silicon. Other platforms and GGUF models should
+  work but haven't been tested.
+- History lives in memory for the session. Reloading the page or pressing
+  Clear starts over.
+
+## Development
+
+```bash
+npm test          # unit tests (vitest)
+npm run lint      # oxlint
+npx tsc -b        # type-check
+npm run build
+```
 
 The look follows [`DESIGN.md`](DESIGN.md), dark variant. Every color, type
-size, spacing step and radius is a CSS variable in
-[`src/styles/theme.css`](src/styles/theme.css), and the components only read
-those variables. The design's display face is proprietary, so ponder uses
-Inter, the substitute DESIGN.md names, and Geist Mono for labels. Both are
-self-hosted, weight 400 only. The orbs are the only animated element.
+size, spacing step, radius and orb size is a CSS variable in
+[`src/styles/theme.css`](src/styles/theme.css). The orbs are the only animated
+element.
 
 ## License
 
