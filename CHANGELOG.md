@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 (2026-10-06)
+
+### Added
+
+- Icons across the UI, from lucide-react with a 1.5 stroke, sized by
+  `--icon-sm/md/lg` tokens: the model picker, Thinking and Tools toggles,
+  Clear (icon-only under 640px), Send and Stop, thinking and tool result
+  chevrons, tool icons on tool calls, the error label and Retry, and loop
+  guard retries in the Activity panel.
+- Copy button under each reply. It copies the raw markdown and shows a check
+  for 1.5s. It appears on hover or keyboard focus, and always on touch screens.
 
 ### Fixed
 
