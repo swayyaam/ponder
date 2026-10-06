@@ -72,6 +72,8 @@ export interface ChatRequest {
   messages: ChatMessage[]
   think?: boolean
   tools?: ToolDef[]
+  /** Only num_predict: sampling is left to each model's own defaults. */
+  options?: { num_predict?: number }
 }
 
 /** Ollama isn't answering at all (not running, wrong port). */

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { loadedModels, streamChat, type ChatChunk, type ChatMessage } from './ollama'
+import { MAX_RESPONSE_TOKENS, THINKING_BUDGET, ThinkingWatch, type GuardReason } from './loopGuard'
 import { TOOLS, describeCall, runTool } from './tools'
 
 export interface UIMessage extends ChatMessage {
@@ -8,6 +9,10 @@ export interface UIMessage extends ChatMessage {
   live?: boolean
   /** Server time from the first thinking chunk to the first chunk after it. */
   thoughtMs?: number
+  /** Thinking chunks so far; Ollama sends one token per chunk. */
+  thinkingTokens?: number
+  /** Why the loop guard cut the thinking short. */
+  thinkingStopped?: GuardReason
 }
 
 /** What the model is doing right now, driven only by what the stream sends. */
@@ -27,7 +32,7 @@ export type Item =
   | { kind: 'error'; id: string; text: string }
   | { kind: 'stopped'; id: string }
 
-export type ActivityKind = 'load' | 'prompt' | 'think' | 'tool' | 'generate' | 'done' | 'stop' | 'error'
+export type ActivityKind = 'load' | 'prompt' | 'think' | 'tool' | 'generate' | 'retry' | 'done' | 'stop' | 'error'
 
 export interface ActivityEvent {
   id: string
@@ -64,6 +69,12 @@ const at = (chunk: ChatChunk) => {
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
 const NS = 1e6
 
+const RETRY_TEXT: Record<GuardReason, string> = {
+  looping: 'Thinking looped, retried without thinking',
+  'over budget': `Thinking went over budget (${THINKING_BUDGET.tokens} tokens or ${THINKING_BUDGET.ms / 1000}s), retried without thinking`,
+  skipped: 'Skipped thinking, retried without thinking',
+}
+
 /** Activity lines for one finished (or cut short) request, in the order things happened. */
 function roundEvents(model: string, loading: boolean, assistant: UIMessage, final?: ChatChunk) {
   const out: Omit<ActivityEvent, 'id'>[] = []
@@ -79,7 +90,7 @@ function roundEvents(model: string, loading: boolean, assistant: UIMessage, fina
     })
   }
   if (assistant.thoughtMs !== undefined) {
-    out.push({ kind: 'think', text: `Thought for ${secs(assistant.thoughtMs)}` })
+    out.push({ kind: 'think', text: `Thought for ${secs(assistant.thoughtMs)}`, detail: assistant.thinkingStopped && `stopped: ${assistant.thinkingStopped}` })
   }
   if (final?.eval_count !== undefined && final.eval_duration) {
     const rate = final.eval_count / (final.eval_duration / 1e9)
@@ -88,6 +99,9 @@ function roundEvents(model: string, loading: boolean, assistant: UIMessage, fina
       text: `Generated ${final.eval_count} tokens, ${Math.round(rate)} tok/s`,
       detail: assistant.thinking ? 'includes thinking tokens' : undefined,
     })
+  }
+  if (final?.done_reason === 'length') {
+    out.push({ kind: 'error', text: `Cut off at the ${MAX_RESPONSE_TOKENS}-token response limit` })
   }
   return out
 }
@@ -109,6 +123,8 @@ export function useChat() {
   const phaseRef = useRef<Phase>({ kind: 'idle' })
   const history = useRef<ChatMessage[]>([])
   const abort = useRef<AbortController | null>(null)
+  /** Stops the current response's thinking and retries without it (the Skip thinking button). */
+  const skip = useRef<(() => void) | null>(null)
 
   const go = (next: Phase) => {
     if (JSON.stringify(next) === JSON.stringify(phaseRef.current)) return
@@ -130,12 +146,25 @@ export function useChat() {
       prev.map((it) => (it.kind === 'message' && it.message.id === id ? { ...it, message: fn(it.message) } : it)),
     )
 
-  /** One /api/chat request, streamed into a new assistant message. */
+  /**
+   * One /api/chat request, streamed into a new assistant message. If the loop guard (or Skip
+   * thinking) stops it mid-thought, it returns `cut` instead of throwing, so the turn can retry.
+   */
   const runRound = async (opts: SendOptions, signal: AbortSignal, loading: boolean) => {
     const assistant: UIMessage = { id: uid(), role: 'assistant', content: '', thinking: '', live: true }
     let shown = false
     let final: ChatChunk | undefined
     let thinkStart: number | undefined
+    let lastAt: number | undefined
+    let cut: GuardReason | undefined
+    const guard = new AbortController()
+    const watch = new ThinkingWatch()
+    const stopThinking = (reason: GuardReason) => {
+      if (cut || assistant.thoughtMs !== undefined) return
+      cut = reason
+      guard.abort()
+    }
+    skip.current = () => stopThinking('skipped')
     // After a tool call the orb stays on the tool until the model answers again.
     if (phaseRef.current.kind !== 'tool') go({ kind: 'working', model: opts.model, loading })
     try {
@@ -145,13 +174,20 @@ export function useChat() {
           messages: history.current,
           think: opts.think,
           ...(opts.tools && { tools: TOOLS }),
+          options: { num_predict: MAX_RESPONSE_TOKENS },
         },
-        signal,
+        AbortSignal.any([signal, guard.signal]),
       )) {
+        // Chunks already in flight when the guard tripped don't count.
+        if (cut) break
         const m = chunk.message
+        lastAt = at(chunk)
         if (m?.thinking) {
           assistant.thinking += m.thinking
           thinkStart ??= at(chunk)
+          const reason = watch.add(assistant.thinking ?? '', performance.now())
+          assistant.thinkingTokens = watch.tokens
+          if (reason) stopThinking(reason)
           go({ kind: 'reasoning' })
         }
         if (m?.content) {
@@ -174,14 +210,21 @@ export function useChat() {
           patch(assistant.id, () => ({ ...assistant }))
         }
       }
+    } catch (err) {
+      if (!cut || signal.aborted) throw err
     } finally {
+      skip.current = null
       assistant.live = false
+      if (cut) {
+        assistant.thinkingStopped = cut
+        if (thinkStart !== undefined && lastAt !== undefined) assistant.thoughtMs = lastAt - thinkStart
+      }
       if (shown) patch(assistant.id, () => ({ ...assistant }))
       log(...roundEvents(opts.model, loading, assistant, final))
       // Keep whatever arrived, even if stopped midway, so the next turn has context.
       if (assistant.content || assistant.tool_calls) history.current.push(toApi(assistant))
     }
-    return { assistant, final }
+    return { assistant, final, cut }
   }
 
   const send = useCallback(async (text: string, opts: SendOptions) => {
@@ -202,9 +245,18 @@ export function useChat() {
       let loading = loaded ? !loaded.includes(opts.model) : false
 
       // Model asks for tools -> run them -> send results back -> model continues.
+      let think = opts.think
       for (let round = 0; ; round++) {
-        const { assistant } = await runRound(opts, ctrl.signal, loading)
+        const { assistant, cut } = await runRound({ ...opts, think }, ctrl.signal, loading)
         loading = false
+        // Thinking looped, ran over budget, or was skipped: answer the same turn once more without it.
+        if (cut) {
+          if (!think) break
+          log({ kind: 'retry', text: RETRY_TEXT[cut] })
+          think = false
+          round--
+          continue
+        }
         const calls = assistant.tool_calls
         if (!calls?.length) break
         if (round >= MAX_TOOL_ROUNDS) {
@@ -251,6 +303,7 @@ export function useChat() {
   }, [])
 
   const stop = useCallback(() => abort.current?.abort(), [])
+  const skipThinking = useCallback(() => skip.current?.(), [])
 
   const clear = useCallback(() => {
     abort.current?.abort()
@@ -259,5 +312,5 @@ export function useChat() {
     setActivity([])
   }, [])
 
-  return { items, busy, phase, activity, send, stop, clear }
+  return { items, busy, phase, activity, send, stop, skipThinking, clear }
 }

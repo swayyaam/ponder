@@ -10,6 +10,7 @@ const ICON: Record<ActivityKind, OrbState> = {
   think: 'reasoning',
   tool: 'searching',
   generate: 'base',
+  retry: 'retrying',
   done: 'base',
   stop: 'base',
   error: 'base',

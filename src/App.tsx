@@ -11,7 +11,7 @@ import './App.css'
 const DEFAULT_MODEL = 'qwen3.5:2b-mlx'
 
 export default function App() {
-  const { items, busy, phase, activity, send, stop, clear } = useChat()
+  const { items, busy, phase, activity, send, stop, skipThinking, clear } = useChat()
   const [models, setModels] = useState<ModelInfo[]>([])
   const [model, setModel] = useState('')
   const [modelsError, setModelsError] = useState<string | null>(null)
@@ -111,7 +111,7 @@ export default function App() {
           {items.map((it) => {
             switch (it.kind) {
               case 'message':
-                return <Message key={it.message.id} message={it.message} />
+                return <Message key={it.message.id} message={it.message} onSkipThinking={skipThinking} />
               case 'error':
                 return (
                   <div key={it.id} className="notice error">

@@ -354,8 +354,28 @@ select option {
   gap: var(--space-sm);
 }
 
-.thinking-toggle {
+.thinking-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+}
+
+.thinking-toggle,
+.thinking-meta {
   color: var(--color-mute);
+}
+
+.thinking-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption-mono-sm);
+  line-height: var(--leading-caption-mono-sm);
+  letter-spacing: var(--tracking-caption-mono-sm);
+  text-transform: uppercase;
+}
+
+.thinking-meta.stopped {
+  color: var(--color-error);
 }
 
 .thinking-toggle:hover:not(:disabled) {
