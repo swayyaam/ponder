@@ -638,6 +638,9 @@ select option {
 }
 
 .error .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   color: var(--color-error);
 }
 
@@ -764,6 +767,13 @@ select option {
   /* Centre the orb on the first text line */
   margin-top: calc((var(--leading-caption-mono-sm) - var(--size-orb-event)) / 2);
   color: var(--color-mute);
+}
+
+/* Loop guard retries: a small repeat icon inline with the text, next to the orb */
+.event-guard .icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: var(--space-xs);
 }
 
 .event-detail {

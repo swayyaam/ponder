@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { Orb, type OrbState } from '@yogesharc/thinking-orbs'
+import { Repeat } from 'lucide-react'
 import type { ActivityKind, ActivityTurn, Phase } from '../useChat'
 import { describe, orbSize } from '../orbs'
+import { Icon } from './Icon'
 
 /** Each line gets a still orb of the state it came from. */
 const ICON: Record<ActivityKind, OrbState> = {
@@ -37,7 +39,10 @@ export function ActivityPanel({ turns, phase }: { turns: ActivityTurn[]; phase: 
               <li key={e.id} className={`event ${e.kind}`}>
                 <Orb state={ICON[e.kind]} size={orbSize('--size-orb-event')} paused />
                 <div>
-                  <div>{e.text}</div>
+                  <div className={e.kind === 'retry' ? 'event-guard' : undefined}>
+                    {e.kind === 'retry' && <Icon icon={Repeat} size="sm" />}
+                    {e.text}
+                  </div>
                   {e.detail && <div className="event-detail">{e.detail}</div>}
                 </div>
               </li>

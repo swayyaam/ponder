@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Orb } from '@yogesharc/thinking-orbs'
-import { ArrowUp, Brain, Cpu, Square, Trash2, Wrench } from 'lucide-react'
+import { ArrowUp, Brain, CircleAlert, Cpu, RotateCcw, Square, Trash2, Wrench } from 'lucide-react'
 import { ActivityPanel } from './components/ActivityPanel'
 import { Icon } from './components/Icon'
 import { Message } from './components/Message'
@@ -137,10 +137,14 @@ export default function App() {
         {modelsError && (
           <div className="banner error">
             <div>
-              <div className="eyebrow">Error</div>
+              <div className="eyebrow">
+                <Icon icon={CircleAlert} size="sm" />
+                Error
+              </div>
               <span>{modelsError}</span>
             </div>
             <button onClick={() => void loadModels()}>
+              <Icon icon={RotateCcw} />
               Retry
             </button>
           </div>
@@ -168,7 +172,10 @@ export default function App() {
                 case 'error':
                   return (
                     <div key={it.id} className="notice error">
-                      <div className="eyebrow">Error</div>
+                      <div className="eyebrow">
+                        <Icon icon={CircleAlert} size="sm" />
+                        Error
+                      </div>
                       {it.text}
                     </div>
                   )
