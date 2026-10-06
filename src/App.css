@@ -10,6 +10,24 @@
   height: 100%;
 }
 
+/* Icons: lucide, sized by theme tokens, always decorative, never animated */
+
+.icon {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.icon-sm {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.icon-lg {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+
 /* Shared: uppercase mono label (eyebrow-mono, small) */
 
 .eyebrow,
@@ -119,7 +137,30 @@ button.primary:disabled {
   color: var(--color-mute);
 }
 
-/* Model picker: outline pill select */
+/* Model picker: outline pill select, with the cpu icon drawn over its left padding */
+
+.picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--color-ink);
+}
+
+.picker .icon {
+  position: absolute;
+  left: var(--space-md);
+  pointer-events: none;
+}
+
+.picker:has(select:disabled) {
+  color: var(--color-mute);
+}
+
+.picker select {
+  padding-left: calc(var(--space-md) + var(--icon-md) + var(--space-sm));
+}
 
 select {
   appearance: none;
@@ -737,5 +778,19 @@ select option {
   select,
   .toggle {
     min-height: var(--touch-target);
+  }
+}
+
+/* Narrow (< 640px): Clear drops its label and becomes a square icon button */
+
+@media (max-width: 639px) {
+  .wide-only {
+    display: none;
+  }
+
+  .clear {
+    min-width: var(--touch-target);
+    padding-left: 0;
+    padding-right: 0;
   }
 }

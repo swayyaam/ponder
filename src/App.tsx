@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Orb } from '@yogesharc/thinking-orbs'
+import { Brain, Cpu, Trash2, Wrench } from 'lucide-react'
 import { ActivityPanel } from './components/ActivityPanel'
+import { Icon } from './components/Icon'
 import { Message } from './components/Message'
 import { OrbStatus } from './components/OrbStatus'
 import { describe, orbSize } from './orbs'
@@ -96,25 +98,37 @@ export default function App() {
           ponder
         </div>
         <div className="controls">
-          <select value={model} onChange={(e) => setModel(e.target.value)} disabled={busy || !models.length}>
-            {models.map((m) => (
-              <option key={m.name} value={m.name}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-          <label className={`toggle ${canThink ? '' : 'disabled'}`} title={canThink ? '' : "This model can't think"}>
+          <span className="picker">
+            <Icon icon={Cpu} />
+            <select
+              aria-label="Model"
+              title="Model"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={busy || !models.length}
+            >
+              {models.map((m) => (
+                <option key={m.name} value={m.name}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </span>
+          <label className={`toggle ${canThink ? '' : 'disabled'}`} title={canThink ? 'Think before answering' : "This model can't think"}>
             <input type="checkbox" checked={canThink && think} disabled={!canThink || busy} onChange={(e) => setThink(e.target.checked)} />
+            <Icon icon={Brain} />
             Thinking
           </label>
           {canTools && (
             <label className="toggle" title="get_time and read_file (./sandbox)">
               <input type="checkbox" checked={tools} disabled={busy} onChange={(e) => setTools(e.target.checked)} />
+              <Icon icon={Wrench} />
               Tools
             </label>
           )}
-          <button onClick={clear} disabled={busy || !items.length}>
-            Clear
+          <button className="clear" onClick={clear} disabled={busy || !items.length} aria-label="Clear chat" title="Clear chat">
+            <Icon icon={Trash2} />
+            <span className="wide-only">Clear</span>
           </button>
         </div>
       </header>

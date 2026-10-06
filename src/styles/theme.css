@@ -102,6 +102,11 @@
   --touch-target: 44px;
   --size-indicator: 6px;
 
+  /* Icon sizes (lucide, stroke 1.5, drawn in currentColor) */
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 18px;
+
   /* Orb sizes, passed to the Orb's size prop (it draws in px, tuned at 20) */
   --size-orb-brand: 20px;
   --size-orb-status: 32px;
