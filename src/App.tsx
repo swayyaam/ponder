@@ -3,7 +3,7 @@ import { Orb } from '@yogesharc/thinking-orbs'
 import { ActivityPanel } from './components/ActivityPanel'
 import { Message } from './components/Message'
 import { OrbStatus } from './components/OrbStatus'
-import { describe } from './orbs'
+import { describe, orbSize } from './orbs'
 import { listModels, type ModelInfo } from './ollama'
 import { useChat } from './useChat'
 import './App.css'
@@ -60,7 +60,7 @@ export default function App() {
       <header className="header">
         <div className="brand">
           <span className={`brand-orb ${phase.kind === 'idle' ? 'idle' : ''}`}>
-            <Orb key={orb.state} state={orb.state} speed={orb.speed} paused={phase.kind === 'idle'} size={20} />
+            <Orb key={orb.state} state={orb.state} speed={orb.speed} paused={phase.kind === 'idle'} size={orbSize('--size-orb-brand')} />
           </span>
           ponder
         </div>

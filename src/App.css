@@ -440,8 +440,11 @@ select option {
 .status {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   color: var(--color-body);
+  font-size: var(--text-caption-mono);
+  line-height: var(--leading-caption-mono);
+  letter-spacing: var(--tracking-caption-mono);
 }
 
 .status svg {
@@ -595,7 +598,8 @@ select option {
 
 .event svg {
   flex: none;
-  margin-top: calc(var(--space-xxs) / 2);
+  /* Centre the orb on the first text line */
+  margin-top: calc((var(--leading-caption-mono-sm) - var(--size-orb-event)) / 2);
   color: var(--color-mute);
 }
 

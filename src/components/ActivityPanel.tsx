@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Orb, type OrbState } from '@yogesharc/thinking-orbs'
 import type { ActivityKind, ActivityTurn, Phase } from '../useChat'
-import { describe } from '../orbs'
+import { describe, orbSize } from '../orbs'
 
 /** Each line gets a still orb of the state it came from. */
 const ICON: Record<ActivityKind, OrbState> = {
@@ -34,7 +34,7 @@ export function ActivityPanel({ turns, phase }: { turns: ActivityTurn[]; phase: 
           <ul>
             {turn.events.map((e) => (
               <li key={e.id} className={`event ${e.kind}`}>
-                <Orb state={ICON[e.kind]} size={14} paused />
+                <Orb state={ICON[e.kind]} size={orbSize('--size-orb-event')} paused />
                 <div>
                   <div>{e.text}</div>
                   {e.detail && <div className="event-detail">{e.detail}</div>}
@@ -43,7 +43,7 @@ export function ActivityPanel({ turns, phase }: { turns: ActivityTurn[]; phase: 
             ))}
             {i === turns.length - 1 && phase.kind !== 'idle' && (
               <li className="event live">
-                <Orb key={live.state} state={live.state} speed={live.speed} size={14} />
+                <Orb key={live.state} state={live.state} speed={live.speed} size={orbSize('--size-orb-event')} />
                 <div>{live.label}…</div>
               </li>
             )}

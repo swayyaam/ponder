@@ -102,6 +102,11 @@
   --touch-target: 44px;
   --size-indicator: 6px;
 
+  /* Orb sizes, passed to the Orb's size prop (it draws in px, tuned at 20) */
+  --size-orb-brand: 20px;
+  --size-orb-status: 32px;
+  --size-orb-event: 18px;
+
   /* Select chevron, drawn in --color-mute */
   --icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237d8187' stroke-width='1.2'/%3E%3C/svg%3E");
 }
