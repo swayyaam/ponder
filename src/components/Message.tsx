@@ -1,6 +1,7 @@
-import { useLayoutEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, Clock, FileText, Wrench, type LucideIcon } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Check, ChevronDown, ChevronRight, Clock, Copy, FileText, Wrench, type LucideIcon } from 'lucide-react'
 import Markdown from 'react-markdown'
+import { copyText } from '../clipboard'
 import type { GuardReason } from '../loopGuard'
 import { closePartial } from '../markdown'
 import { describeCall } from '../tools'
@@ -90,6 +91,34 @@ function Answer({ text, live }: { text: string; live: boolean }) {
   )
 }
 
+/** Copies a reply's raw markdown; the icon turns into a check for a moment. */
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const t = setTimeout(() => setCopied(false), 1500)
+    return () => clearTimeout(t)
+  }, [copied])
+
+  const label = copied ? 'Copied' : 'Copy reply'
+  return (
+    <>
+      <button
+        type="button"
+        className="ghost icon-only"
+        aria-label={label}
+        title={label}
+        onClick={() => void copyText(text).then((ok) => ok && setCopied(true))}
+      >
+        <Icon icon={copied ? Check : Copy} size="sm" />
+      </button>
+      <span className="sr-only" role="status">
+        {copied ? 'Copied' : ''}
+      </span>
+    </>
+  )
+}
+
 interface MessageProps {
   message: UIMessage
   /** Part of the latest turn (after the last user message). */
@@ -139,6 +168,11 @@ export function Message({ message, current = false, onSkipThinking }: MessagePro
         </div>
       ))}
       {message.content && <Answer text={message.content} live={!!message.live} />}
+      {message.content && !message.live && (
+        <div className="msg-actions">
+          <CopyButton text={message.content} />
+        </div>
+      )}
     </div>
   )
 }

@@ -127,6 +127,17 @@ button.icon-only {
   min-width: calc(var(--leading-button) + 2 * var(--space-sm));
 }
 
+/* Ghost: a quiet icon button with no border until hovered */
+button.ghost {
+  color: var(--color-mute);
+  border-color: transparent;
+}
+
+button.ghost:hover:not(:disabled) {
+  color: var(--color-body);
+  border-color: var(--color-outline);
+}
+
 button.primary {
   background: var(--color-primary);
   color: var(--color-on-primary);
@@ -398,6 +409,37 @@ select option {
   border: 0;
   border-top: var(--border-hairline);
   margin: var(--space-xl) 0;
+}
+
+/* Actions under a reply: shown on hover or keyboard focus, always on touch screens. No transition. */
+
+.msg-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: calc(-1 * var(--space-sm));
+  opacity: 0;
+}
+
+.msg.assistant:hover .msg-actions,
+.msg-actions:focus-within {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .msg-actions {
+    opacity: 1;
+  }
+}
+
+/* Read by screen readers only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Thinking block */
