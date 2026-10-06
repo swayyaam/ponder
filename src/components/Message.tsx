@@ -98,7 +98,7 @@ export function Message({ message, onSkipThinking }: { message: UIMessage; onSki
       ))}
       {message.content && (
         <div className="markdown">
-          <Markdown>{message.content}</Markdown>
+          <Markdown>{message.live ? closePartial(message.content) : message.content}</Markdown>
         </div>
       )}
     </div>
