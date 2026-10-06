@@ -380,6 +380,10 @@ select option {
   line-height: var(--leading-body-sm);
   max-height: var(--layout-scroll-max);
   overflow-y: auto;
+  overflow-wrap: anywhere;
+  /* Room for the italic overhang and the last line, so neither is clipped by the scroll box */
+  padding-right: var(--space-sm);
+  padding-bottom: var(--space-xs);
 }
 
 /* Keep the model's own line breaks inside paragraphs */

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { closePartial } from '../markdown'
 import { describeCall } from '../tools'
@@ -15,6 +15,18 @@ function Thinking({ text, active, thoughtMs }: { text: string; active: boolean; 
     setOpen(active)
   }
 
+  // While it streams, keep the newest line in view unless the reader scrolled up.
+  const box = useRef<HTMLDivElement>(null)
+  const follow = useRef(true)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (el && active && follow.current) el.scrollTop = el.scrollHeight
+  }, [text, active, open])
+  const onScroll = () => {
+    const el = box.current
+    if (el) follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+  }
+
   const label = active ? 'Thinking…' : thoughtMs !== undefined ? `Thought for ${seconds(thoughtMs)}` : 'Thoughts'
   return (
     <div className="thinking">
@@ -22,7 +34,7 @@ function Thinking({ text, active, thoughtMs }: { text: string; active: boolean; 
         {label}
       </button>
       {open && (
-        <div className="thinking-text markdown">
+        <div ref={box} className="thinking-text markdown" onScroll={onScroll}>
           <Markdown>{active ? closePartial(text) : text}</Markdown>
         </div>
       )}
