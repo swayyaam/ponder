@@ -120,6 +120,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Icon-only buttons: no text line, so match a text pill's height (line + padding + 1px borders) */
+button.icon-only {
+  padding: var(--space-xs) var(--space-sm);
+  min-height: calc(var(--leading-button) + 2 * var(--space-xs) + 2px);
+  min-width: calc(var(--leading-button) + 2 * var(--space-sm));
+}
+
 button.primary {
   background: var(--color-primary);
   color: var(--color-on-primary);
@@ -778,6 +785,10 @@ select option {
   select,
   .toggle {
     min-height: var(--touch-target);
+  }
+
+  button.icon-only {
+    min-width: var(--touch-target);
   }
 }
 

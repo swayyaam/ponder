@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Orb } from '@yogesharc/thinking-orbs'
-import { Brain, Cpu, Trash2, Wrench } from 'lucide-react'
+import { ArrowUp, Brain, Cpu, Square, Trash2, Wrench } from 'lucide-react'
 import { ActivityPanel } from './components/ActivityPanel'
 import { Icon } from './components/Icon'
 import { Message } from './components/Message'
@@ -193,12 +193,18 @@ export default function App() {
             rows={1}
           />
           {busy ? (
-            <button type="button" className="stop" onClick={stop}>
-              Stop
+            <button type="button" className="stop icon-only" onClick={stop} aria-label="Stop" title="Stop">
+              <Icon icon={Square} size="sm" fill />
             </button>
           ) : (
-            <button type="submit" className="primary" disabled={!input.trim() || !model}>
-              Send
+            <button
+              type="submit"
+              className="primary icon-only"
+              disabled={!input.trim() || !model}
+              aria-label="Send"
+              title="Send (Enter). Shift+Enter for a new line"
+            >
+              <Icon icon={ArrowUp} />
             </button>
           )}
         </form>
