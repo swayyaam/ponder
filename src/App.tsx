@@ -23,7 +23,10 @@ export default function App() {
   const showModels = useCallback((list: ModelInfo[]) => {
     setModels(list)
     setModelsError(list.length ? null : 'No models installed. Pull one with `ollama pull qwen3.5:2b-mlx`.')
-    setModel((cur) => cur || (list.find((m) => m.name === DEFAULT_MODEL) ?? list[0])?.name || '')
+    // Keep the current pick if it's still installed, else the default, else the first installed model.
+    setModel((cur) =>
+      list.some((m) => m.name === cur) ? cur : ((list.find((m) => m.name === DEFAULT_MODEL) ?? list[0])?.name ?? ''),
+    )
   }, [])
   const showModelsError = useCallback((err: unknown) => {
     setModelsError(err instanceof Error ? err.message : String(err))
