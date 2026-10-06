@@ -17,6 +17,7 @@
 .notice,
 .tool-call,
 .thinking-toggle,
+.thinking-skip,
 .tool-result summary {
   font-family: var(--font-mono);
   font-size: var(--text-caption-mono-sm);

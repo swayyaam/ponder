@@ -14,19 +14,22 @@ interface ThinkingProps {
   thoughtMs?: number
   tokens?: number
   stopped?: GuardReason
+  /** Part of the latest turn. */
+  current: boolean
   onSkip?: () => void
 }
 
 /**
- * Collapsible, muted thinking text: open while it streams, folded once the answer starts.
- * If the loop guard cut it short it stays open, so you can see where it went wrong.
+ * Collapsible, muted thinking text. It opens while it streams and stays open while the answer
+ * streams below it (folding it then would yank the answer up mid-read). It folds once the
+ * next turn starts, when the thread scrolls to the new message anyway.
  */
-function Thinking({ text, active, thoughtMs, tokens, stopped, onSkip }: ThinkingProps) {
+function Thinking({ text, active, thoughtMs, tokens, stopped, current, onSkip }: ThinkingProps) {
   const [open, setOpen] = useState(active)
-  const [wasActive, setWasActive] = useState(active)
-  if (active !== wasActive) {
-    setWasActive(active)
-    setOpen(active || !!stopped)
+  const [wasCurrent, setWasCurrent] = useState(current)
+  if (current !== wasCurrent) {
+    setWasCurrent(current)
+    if (!current) setOpen(false)
   }
 
   const shown = useSmoothText(text, active)
@@ -90,7 +93,14 @@ function Answer({ text, live }: { text: string; live: boolean }) {
   )
 }
 
-export function Message({ message, onSkipThinking }: { message: UIMessage; onSkipThinking?: () => void }) {
+interface MessageProps {
+  message: UIMessage
+  /** Part of the latest turn (after the last user message). */
+  current?: boolean
+  onSkipThinking?: () => void
+}
+
+export function Message({ message, current = false, onSkipThinking }: MessageProps) {
   if (message.role === 'user') {
     return <div className="msg user">{message.content}</div>
   }
@@ -114,6 +124,7 @@ export function Message({ message, onSkipThinking }: { message: UIMessage; onSki
           thoughtMs={message.thoughtMs}
           tokens={message.thinkingTokens}
           stopped={message.thinkingStopped}
+          current={current}
           onSkip={onSkipThinking}
         />
       )}

@@ -42,6 +42,7 @@ export default function App() {
   }, [items, phase])
 
   const orb = describe(phase)
+  const lastUser = items.findLastIndex((it) => it.kind === 'message' && it.message.role === 'user')
   const current = models.find((m) => m.name === model)
   const canThink = current?.capabilities?.includes('thinking') ?? false
   const canTools = current?.capabilities?.includes('tools') ?? false
@@ -111,10 +112,17 @@ export default function App() {
               <p>Ask {model || 'the model'} anything.</p>
             </div>
           )}
-          {items.map((it) => {
+          {items.map((it, i) => {
             switch (it.kind) {
               case 'message':
-                return <Message key={it.message.id} message={it.message} onSkipThinking={skipThinking} />
+                return (
+                  <Message
+                    key={it.message.id}
+                    message={it.message}
+                    current={i > lastUser}
+                    onSkipThinking={skipThinking}
+                  />
+                )
               case 'error':
                 return (
                   <div key={it.id} className="notice error">
