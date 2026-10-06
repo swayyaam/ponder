@@ -57,8 +57,10 @@ export interface SendOptions {
 /** How many times in one turn the model may call tools before we stop looping. */
 const MAX_TOOL_ROUNDS = 5
 
+// A hot reload resets this counter but keeps the messages on screen, so the time
+// prefix keeps new ids from colliding with old ones (patch() matches by id).
 let lastId = 0
-const uid = () => String(++lastId)
+const uid = () => `${Date.now().toString(36)}-${++lastId}`
 
 /** A chunk's server timestamp in ms. created_at has microseconds; Date.parse keeps the ms. */
 const at = (chunk: ChatChunk) => {
