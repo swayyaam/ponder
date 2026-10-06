@@ -36,6 +36,9 @@ there are no CORS issues.
   thinks, stays open while the answer streams below it, and folds when you send
   the next message
 - Stop button, which aborts the request, and Clear, which resets the chat
+- Copy button under each reply that copies its raw markdown
+- While a reply streams, the thread follows it only if you're at the bottom, so
+  you can scroll up and read
 - **Activity** panel that logs each turn: model load time, prompt tokens, how
   long it thought, tool calls, tokens/sec, and loop guard retries, all taken
   from the stream's own fields
@@ -116,9 +119,10 @@ npm run build
 ```
 
 The look follows [`DESIGN.md`](DESIGN.md), dark variant. Every color, type
-size, spacing step, radius and orb size is a CSS variable in
-[`src/styles/theme.css`](src/styles/theme.css). The orbs are the only animated
-element.
+size, spacing step, radius, icon size and orb size is a CSS variable in
+[`src/styles/theme.css`](src/styles/theme.css). Icons come from
+[lucide](https://lucide.dev) (`lucide-react`), drawn with a 1.5 stroke in the
+current text color. The orbs are the only animated element.
 
 ## License
 
