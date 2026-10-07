@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Clock, Copy, FileText, Wrench, type LucideIcon } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react'
 import Markdown from 'react-markdown'
 import { copyText } from '../clipboard'
 import type { GuardReason } from '../loopGuard'
 import { closePartial } from '../markdown'
+import { toolIcon } from '../toolIcons'
 import { describeCall } from '../tools'
 import type { UIMessage } from '../useChat'
 import { useSmoothText } from '../useSmoothText'
@@ -11,9 +12,6 @@ import { Icon } from './Icon'
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`
 
-/** One icon per tool, on its call line and its result pill. */
-const TOOL_ICON: Record<string, LucideIcon> = { read_file: FileText, get_time: Clock }
-const toolIcon = (name?: string) => (name && TOOL_ICON[name]) || Wrench
 
 interface ThinkingProps {
   text: string

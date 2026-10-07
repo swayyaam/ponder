@@ -1,22 +1,38 @@
 import { useEffect, useRef } from 'react'
-import { Orb, type OrbState } from '@yogesharc/thinking-orbs'
-import { Repeat } from 'lucide-react'
-import type { ActivityKind, ActivityTurn, Phase } from '../useChat'
+import { Orb } from '@yogesharc/thinking-orbs'
+import {
+  BookOpen,
+  Brain,
+  CircleAlert,
+  CircleCheck,
+  CircleStop,
+  MemoryStick,
+  PenLine,
+  Repeat,
+  type LucideIcon,
+} from 'lucide-react'
+import type { ActivityEvent, ActivityKind, ActivityTurn, Phase } from '../useChat'
 import { describe, orbSize } from '../orbs'
+import { toolIcon } from '../toolIcons'
 import { Icon } from './Icon'
 
-/** Each line gets a still orb of the state it came from. */
-const ICON: Record<ActivityKind, OrbState> = {
-  load: 'working',
-  prompt: 'waiting',
-  think: 'reasoning',
-  tool: 'searching',
-  generate: 'base',
-  retry: 'retrying',
-  done: 'base',
-  stop: 'base',
-  error: 'base',
+/**
+ * Finished lines get an icon for what happened, each a different shape so they're easy to
+ * tell apart at a glance. Only the live line keeps an orb, since it's the one still moving.
+ */
+const ICON: Record<ActivityKind, LucideIcon> = {
+  load: MemoryStick,
+  prompt: BookOpen,
+  think: Brain,
+  tool: toolIcon(),
+  generate: PenLine,
+  retry: Repeat,
+  done: CircleCheck,
+  stop: CircleStop,
+  error: CircleAlert,
 }
+
+const eventIcon = (e: ActivityEvent) => (e.kind === 'tool' ? toolIcon(e.tool) : ICON[e.kind])
 
 export function ActivityPanel({ turns, phase }: { turns: ActivityTurn[]; phase: Phase }) {
   const end = useRef<HTMLDivElement>(null)
@@ -37,12 +53,9 @@ export function ActivityPanel({ turns, phase }: { turns: ActivityTurn[]; phase: 
           <ul>
             {turn.events.map((e) => (
               <li key={e.id} className={`event ${e.kind}`}>
-                <Orb state={ICON[e.kind]} size={orbSize('--size-orb-event')} paused />
+                <Icon icon={eventIcon(e)} />
                 <div>
-                  <div className={e.kind === 'retry' ? 'event-guard' : undefined}>
-                    {e.kind === 'retry' && <Icon icon={Repeat} size="sm" />}
-                    {e.text}
-                  </div>
+                  <div>{e.text}</div>
                   {e.detail && <div className="event-detail">{e.detail}</div>}
                 </div>
               </li>

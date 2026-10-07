@@ -757,11 +757,9 @@ select option {
   color: var(--color-mute);
 }
 
-/* Loop guard retries: a small repeat icon inline with the text, next to the orb */
-.event-guard .icon {
-  display: inline-block;
-  vertical-align: -2px;
-  margin-right: var(--space-xs);
+/* Event icons sit in the same column as the live orb: centred in its width and on the first line */
+.event .icon {
+  margin: calc((var(--leading-caption-mono-sm) - var(--icon-md)) / 2) calc((var(--size-orb-event) - var(--icon-md)) / 2) 0;
 }
 
 .event-detail {

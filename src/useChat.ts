@@ -39,6 +39,8 @@ export interface ActivityEvent {
   kind: ActivityKind
   text: string
   detail?: string
+  /** For tool lines: which tool, so the panel can show its icon. */
+  tool?: string
 }
 
 /** Everything that happened while answering one user message. */
@@ -284,6 +286,7 @@ export function useChat() {
             kind: result.ok ? 'tool' : 'error',
             text: `Called ${describeCall(call)} (${Math.round(performance.now() - t)}ms)`,
             detail: preview.replace(/\s+/g, ' '),
+            tool: call.function.name,
           })
         }
       }
