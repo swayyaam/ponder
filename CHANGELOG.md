@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Edit a prompt you already sent. The edit replaces that prompt and everything
+  after it, then asks again.
+- Retry button next to Copy under each reply, which asks the same prompt again.
+
+### Changed
+
+- Copy and Retry are always visible, muted until hovered, instead of only on
+  hover.
+- Activity lines use a distinct icon per kind (load, prompt, think, tool,
+  generate, retry, done, stop, error) instead of identical paused orbs. The
+  live line keeps its animated orb.
+
 ## 0.1.1 (2026-10-06)
 
 ### Added

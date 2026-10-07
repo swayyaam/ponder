@@ -36,12 +36,16 @@ there are no CORS issues.
   thinks, stays open while the answer streams below it, and folds when you send
   the next message
 - Stop button, which aborts the request, and Clear, which resets the chat
-- Copy button under each reply that copies its raw markdown
+- Copy and Retry under each reply. Copy takes the raw markdown, Retry asks the
+  same prompt again
+- Edit any prompt you sent. Sending the edit replaces that prompt and
+  everything after it, in the thread and in the history the model sees
 - While a reply streams, the thread follows it only if you're at the bottom, so
   you can scroll up and read
 - **Activity** panel that logs each turn: model load time, prompt tokens, how
   long it thought, tool calls, tokens/sec, and loop guard retries, all taken
-  from the stream's own fields
+  from the stream's own fields. Each kind of line has its own icon, and the
+  line for what's happening now shows the live orb
 - Two tools with a full call loop (the model asks, ponder runs the tool, the
   result goes back, the model continues):
   - `get_time`: the local time, computed in the browser
