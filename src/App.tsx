@@ -7,13 +7,13 @@ import { Message } from './components/Message'
 import { OrbStatus } from './components/OrbStatus'
 import { describe, orbSize } from './orbs'
 import { listModels, type ModelInfo } from './ollama'
-import { useChat } from './useChat'
+import { useChat, type UIMessage } from './useChat'
 import './App.css'
 
 const DEFAULT_MODEL = 'qwen3.5:2b-mlx'
 
 export default function App() {
-  const { items, busy, phase, activity, send, stop, skipThinking, clear } = useChat()
+  const { items, busy, phase, activity, send, resend, stop, skipThinking, clear } = useChat()
   const [models, setModels] = useState<ModelInfo[]>([])
   const [model, setModel] = useState('')
   const [modelsError, setModelsError] = useState<string | null>(null)
@@ -69,19 +69,38 @@ export default function App() {
 
   const orb = describe(phase)
   const lastUser = items.findLastIndex((it) => it.kind === 'message' && it.message.role === 'user')
+  /** The prompt an assistant reply at index i answers. */
+  const promptBefore = (i: number): UIMessage | undefined => {
+    for (let j = i - 1; j >= 0; j--) {
+      const it = items[j]
+      if (it.kind === 'message' && it.message.role === 'user') return it.message
+    }
+  }
   const current = models.find((m) => m.name === model)
   const canThink = current?.capabilities?.includes('thinking') ?? false
   const canTools = current?.capabilities?.includes('tools') ?? false
+
+  const options = () => ({ model, think: canThink && think, tools: canTools && tools })
+  // Sending always jumps to the end and follows the new answer.
+  const followEnd = () => {
+    stick.current = true
+    if (thread.current) thread.current.scrollTop = thread.current.scrollHeight
+  }
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault()
     const text = input.trim()
     if (!text || busy || !model) return
-    // Sending always jumps to the end and follows the new answer.
-    stick.current = true
-    if (thread.current) thread.current.scrollTop = thread.current.scrollHeight
+    followEnd()
     setInput('')
-    void send(text, { model, think: canThink && think, tools: canTools && tools })
+    void send(text, options())
+  }
+
+  /** Edit or retry a prompt: it and everything after it is replaced by a fresh answer. */
+  const resendFrom = (from: UIMessage, text: string) => {
+    if (busy || !model) return
+    followEnd()
+    resend(from, text, options())
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -160,15 +179,20 @@ export default function App() {
             )}
             {items.map((it, i) => {
               switch (it.kind) {
-                case 'message':
+                case 'message': {
+                  const m = it.message
+                  const prompt = m.role === 'assistant' ? promptBefore(i) : undefined
                   return (
                     <Message
-                      key={it.message.id}
-                      message={it.message}
+                      key={m.id}
+                      message={m}
                       current={i > lastUser}
                       onSkipThinking={skipThinking}
+                      onEdit={!busy && m.role === 'user' ? (text) => resendFrom(m, text) : undefined}
+                      onRetry={!busy && prompt ? () => resendFrom(prompt, prompt.content) : undefined}
                     />
                   )
+                }
                 case 'error':
                   return (
                     <div key={it.id} className="notice error">

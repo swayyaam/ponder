@@ -13,6 +13,9 @@ export interface UIMessage extends ChatMessage {
   thinkingTokens?: number
   /** Why the loop guard cut the thinking short. */
   thinkingStopped?: GuardReason
+  /** User messages: how much history came before it, and the Activity turn it started. Used to edit or retry it. */
+  historyAt?: number
+  turnId?: string
 }
 
 /** What the model is doing right now, driven only by what the stream sends. */
@@ -236,10 +239,11 @@ export function useChat() {
     abort.current = ctrl
     setBusy(true)
 
-    const user: UIMessage = { id: uid(), role: 'user', content: text }
+    const turnId = uid()
+    const user: UIMessage = { id: uid(), role: 'user', content: text, historyAt: history.current.length, turnId }
     history.current.push(toApi(user))
     push({ kind: 'message', message: user })
-    setActivity((prev) => [...prev, { id: uid(), prompt: text, events: [] }])
+    setActivity((prev) => [...prev, { id: turnId, prompt: text, events: [] }])
     const started = performance.now()
 
     try {
@@ -317,5 +321,26 @@ export function useChat() {
     setActivity([])
   }, [])
 
-  return { items, busy, phase, activity, send, stop, skipThinking, clear }
+  /**
+   * Edit or retry: drop `from` (a user message) and everything after it from the thread,
+   * the history and the Activity panel, then send `text` in its place.
+   */
+  const resend = useCallback(
+    (from: UIMessage, text: string, opts: SendOptions) => {
+      if (abort.current || from.role !== 'user') return
+      history.current = history.current.slice(0, from.historyAt ?? history.current.length)
+      setItems((prev) => {
+        const i = prev.findIndex((it) => it.kind === 'message' && it.message.id === from.id)
+        return i < 0 ? prev : prev.slice(0, i)
+      })
+      setActivity((prev) => {
+        const i = prev.findIndex((t) => t.id === from.turnId)
+        return i < 0 ? prev : prev.slice(0, i)
+      })
+      void send(text, opts)
+    },
+    [send],
+  )
+
+  return { items, busy, phase, activity, send, resend, stop, skipThinking, clear }
 }

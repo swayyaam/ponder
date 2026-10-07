@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { Check, ChevronDown, ChevronRight, Copy, Pencil, RotateCcw } from 'lucide-react'
 import Markdown from 'react-markdown'
 import { copyText } from '../clipboard'
 import type { GuardReason } from '../loopGuard'
@@ -117,16 +117,90 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
+/** A sent prompt, with an Edit button that turns it into a box to change and send again. */
+function UserMessage({ text, onEdit }: { text: string; onEdit?: (text: string) => void }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  // A request starting elsewhere (onEdit gone) closes the editor.
+  const editing = draft !== null && !!onEdit
+
+  // Open with the cursor at the end of the text, ready to keep typing.
+  const box = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!editing || !el) return
+    el.focus()
+    el.setSelectionRange(el.value.length, el.value.length)
+  }, [editing])
+
+  if (editing) {
+    const submit = (e?: FormEvent) => {
+      e?.preventDefault()
+      const next = draft.trim()
+      if (!next) return
+      setDraft(null)
+      onEdit(next)
+    }
+    const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Escape') setDraft(null)
+      else if (e.key === 'Enter' && !e.shiftKey) submit(e)
+    }
+    return (
+      <form className="user-turn editing" onSubmit={submit}>
+        <textarea
+          className="msg-edit"
+          aria-label="Edit message"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={onKeyDown}
+          ref={box}
+          rows={1}
+        />
+        <div className="msg-edit-actions">
+          <button type="button" onClick={() => setDraft(null)}>
+            Cancel
+          </button>
+          <button type="submit" className="primary" disabled={!draft.trim()}>
+            Send
+          </button>
+        </div>
+      </form>
+    )
+  }
+
+  return (
+    <div className="user-turn">
+      <div className="msg user">{text}</div>
+      {onEdit && (
+        <div className="msg-actions">
+          <button
+            type="button"
+            className="ghost icon-only"
+            aria-label="Edit message"
+            title="Edit and send again"
+            onClick={() => setDraft(text)}
+          >
+            <Icon icon={Pencil} size="sm" />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface MessageProps {
   message: UIMessage
   /** Part of the latest turn (after the last user message). */
   current?: boolean
   onSkipThinking?: () => void
+  /** User messages: send an edited version in its place. Absent while a request runs. */
+  onEdit?: (text: string) => void
+  /** Assistant replies: ask the prompt before it again. Absent while a request runs. */
+  onRetry?: () => void
 }
 
-export function Message({ message, current = false, onSkipThinking }: MessageProps) {
+export function Message({ message, current = false, onSkipThinking, onEdit, onRetry }: MessageProps) {
   if (message.role === 'user') {
-    return <div className="msg user">{message.content}</div>
+    return <UserMessage text={message.content} onEdit={onEdit} />
   }
 
   if (message.role === 'tool') {
@@ -169,6 +243,11 @@ export function Message({ message, current = false, onSkipThinking }: MessagePro
       {message.content && !message.live && (
         <div className="msg-actions">
           <CopyButton text={message.content} />
+          {onRetry && (
+            <button type="button" className="ghost icon-only" aria-label="Retry" title="Ask again" onClick={onRetry}>
+              <Icon icon={RotateCcw} size="sm" />
+            </button>
+          )}
         </div>
       )}
     </div>
