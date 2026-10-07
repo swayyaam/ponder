@@ -411,24 +411,12 @@ select option {
   margin: var(--space-xl) 0;
 }
 
-/* Actions under a reply: shown on hover or keyboard focus, always on touch screens. No transition. */
+/* Actions under a message: always visible, muted until hovered */
 
 .msg-actions {
   display: flex;
   gap: var(--space-xs);
   margin-top: calc(-1 * var(--space-sm));
-  opacity: 0;
-}
-
-.msg.assistant:hover .msg-actions,
-.msg-actions:focus-within {
-  opacity: 1;
-}
-
-@media (hover: none) {
-  .msg-actions {
-    opacity: 1;
-  }
 }
 
 /* Read by screen readers only */
